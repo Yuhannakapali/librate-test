@@ -41,6 +41,9 @@ const App: React.FunctionComponent = () => {
             item.countryDetail = storeCountry;
             return;
           } else {
+            //save the data in store  and only use it after ward but i am not using it here. this project need node 16 but i had 18 LTS installed wasted losts of time. trying to debug what happend
+            // i know i was supoosed to use thunk here but i am running out of time. 
+            // if done correctly this else block won't be necessary as all the data will be on the store and we can use it from there.
             let countrylist = await getCountries({ search: item.country });
             item.countryDetail = countrylist.searchResults.find((country) => country.alpha2Code === item.country || country.alpha3Code === item.country);
             if (countrylist.searchResults.length > 0) {
