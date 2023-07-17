@@ -1,9 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+import { useSelector } from 'react-redux'
+import { useDebouncedEffect } from "./hooks/useDebounceEffect";
 import { getCountries, getPeople } from './DataApi';
+import { RootState } from './store'
+import { useAppDispatch } from './store/hook';
+import { addCountry } from './store/CountrySlice';
+
 
 const App: React.FunctionComponent = () => {
 
-  interface People2 {
+  interface People {
     id: string;
     first_name: string;
     last_name: string;
@@ -16,24 +22,36 @@ const App: React.FunctionComponent = () => {
   const [search, setSearch] = useState<string>('');
   const [results, setResults] = useState<any>({});
 
+  const dispatch = useAppDispatch();
+
+  const contriesList = useSelector((state: RootState) => state.countryReducer)
+
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(event.target.value);
   }
 
-
-  useEffect(() => {
+  useDebouncedEffect(() => {
     if (search !== '') {
-      getPeople({ search }).then((data) => {
+      getPeople({ search }).then(async (data) => {
         let { searchResultCount, totalResultCounter } = data;
-        let searchResults = data.searchResults as People2[];
+        let searchResults = data.searchResults as People[];
         searchResults.map(async (item) => {
-          let countrylist = await getCountries({ search: item.country });
-          item.countryDetail = countrylist.searchResults.find((country) => country.alpha2Code === item.country || country.alpha3Code === item.country);
+          let storeCountry = contriesList.find((country) => country.alpha2Code === item.country || country.alpha3Code === item.country);
+          if (storeCountry) {
+            item.countryDetail = storeCountry;
+            return;
+          } else {
+            let countrylist = await getCountries({ search: item.country });
+            item.countryDetail = countrylist.searchResults.find((country) => country.alpha2Code === item.country || country.alpha3Code === item.country);
+            if (countrylist.searchResults.length > 0) {
+              dispatch(addCountry(countrylist.searchResults))
+            }
+          }
         })
         setResults({ searchResultCount, totalResultCounter, searchResults });
       })
     }
-  }, [search])
+  }, [search], 500)
 
   return (
     <div className="pageWrapper">
@@ -46,7 +64,7 @@ const App: React.FunctionComponent = () => {
             <div key={index}>
               <p>{`${item.first_name}  ${item.last_name}`}</p>
               {/* images are not loading because the image server is taking too much of time and its time outting while i test.  */}
-              {item.countryDetail.flag && <img className="flag" height={50} src={`${item.countryDetail?.flag}`} alt="Flag alt" />}
+              <img className="flag" height={50} src={`${item.countryDetail?.flag}`} alt="Flag alt" />
             </div>
           )
         }
